@@ -5,7 +5,7 @@ pip install pyinstaller
 
 REM "=== PYINSTALLER ==="
 IF EXIST dist RMDIR /S /Q dist
-pyinstaller aet_collector.py --onefile  REM --icon=yonder.ico
+pyinstaller aet_collector.py --onefile
 
 REM "=== COPY ADDITIONAL FILES ==="
 REM COPY LICENSE dist\
