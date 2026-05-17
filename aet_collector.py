@@ -181,7 +181,7 @@ if __name__ == "__main__":
 
     # default output dir
     if not args.output:
-        args.output = args.matbins[0].parent / "aet"
+        args.output = Path(sys.executable).parent / "aet"
     args.output.mkdir(parents=True, exist_ok=True)
 
     for mat in args.matbins:
