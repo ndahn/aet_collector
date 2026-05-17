@@ -79,7 +79,7 @@ def save_config(config: dict = None, **overrides) -> None:
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("matbin", type=Path, help="Path to a matbin file")
+    p.add_argument("matbins", nargs="+", type=Path, help="Paths to one or more matbin files")
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "-g",
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     # === game path from matbin path ===
     if not args.game_path or not args.game_path.is_dir():
         # Try to determine the game directory from the matbin path first
-        parent: Path = args.matbin.parent
+        parent: Path = args.matbins[0].parent
         while parent and parent.parent != parent:
             candidate = parent / AET_BASE_DIR
             if candidate.is_dir():
@@ -136,7 +136,7 @@ if __name__ == "__main__":
             input(
                 "Failed to determine game directory, please press Enter and choose the game's .exe manually..."
             )
-            ret = open_file("Locate Game .exe", str(args.matbin.parent), ".exe")
+            ret = open_file("Locate Game .exe", str(args.matbins[0].parent), ".exe")
             if ret:
                 args.game_path = Path(ret).parent
 
@@ -181,7 +181,8 @@ if __name__ == "__main__":
 
     # default output dir
     if not args.output:
-        args.output = args.matbin.parent / "aet"
+        args.output = args.matbins[0].parent / "aet"
     args.output.mkdir(parents=True, exist_ok=True)
 
-    collect_aets(args.matbin, args.game_path, args.output)
+    for mat in args.matbins:
+        collect_aets(mat, args.game_path, args.output)
