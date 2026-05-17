@@ -9,4 +9,4 @@ pyinstaller aet_collector.py --onefile
 
 REM "=== COPY ADDITIONAL FILES ==="
 REM COPY LICENSE dist\
-REM COPY README.md dist\
+COPY README.md dist\
