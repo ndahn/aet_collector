@@ -1,24 +1,25 @@
+import sys
 import argparse
 from pathlib import Path
 import re
 import shutil
+import json
 from crossfiledialog import open_file
 
 from soulstruct.config import (
     GET_CONFIG,
-    SET_CONFIG,
     ELDEN_RING_PATH,
     DS3_PATH,
     SEKIRO_PATH,
+    _DEFAULT_STEAM_PATH,
+    _SOULSTRUCT_APPDATA,
 )
 from soulstruct.games import GAMES
 from soulstruct.base.models import MATBIN
 
 
-AET_BASE_DIR = "assets/aet"
-NIGHTREIGN_DEFAULT_PATH = Path(
-    "C:/Program Files (x86)/Steam/steamapps/common/ELDEN RING NIGHTREIGN"
-)
+AET_BASE_DIR = "asset/aet"
+DEFAULT_NIGHTREIGN_PATH = _DEFAULT_STEAM_PATH / "ELDEN RING NIGHTREIGN/Game"
 
 
 def collect_aets(mat_path: Path, game_path: Path, output_dir: Path = None) -> None:
@@ -28,35 +29,57 @@ def collect_aets(mat_path: Path, game_path: Path, output_dir: Path = None) -> No
 
     mat: MATBIN = MATBIN.from_path(mat_path)
     collected: set[str] = set()
-    print(f"Collecting AETs for {mat_path.name}")
+    print(f"Collecting AETs for {mat_path.name} ({mat.shader_path})")
 
     for sampler in mat.samplers:
-        aet: str = next(re.finditer(r"(?<=/)AET\d\d\d_\d\d\d(?=/)", sampler.path), None)
-        if not aet or aet.lower() in collected:
+        match = next(re.finditer(r"AET\d\d\d_\d\d\d", sampler.path), None)
+        if not match or match.group(0).lower() in collected:
             continue
 
+        aet = match.group(0)
         print(f" - {aet}")
-        group = aet.split("_")[0]
+        group = aet.split("_")[0].lower()
 
         for suffix in ["", "_l"]:
-            aet_dir = aet_base_dir / group.lower()
-            name = f"{aet}{suffix}"
+            aet_dir = aet_base_dir / group
+            name = f"{aet.lower()}{suffix}"
+            aet_dcx = aet_dir / f"{name}.tpf.dcx"
 
-            for file in aet_dir.glob("*.tpfbnd.dcx"):
-                if (
-                    file.stem.lower() == name.lower()
-                    and not (output_dir / file.name).is_file()
-                ):
-                    shutil.copy(file, output_dir)
+            if aet_dcx.is_file():
+                if not (output_dir / aet_dcx.name).is_file():
+                    shutil.copy(aet_dcx, output_dir)
+            else:
+                print(f"Could not locate {aet_dcx}")
 
         collected.add(aet.lower())
 
     print(f"{mat_path.name}: collected {len(collected)} AETs in {output_dir}")
 
 
+def save_config(config: dict = None, **overrides) -> None:
+    # Soulstruct is too limiting here
+    if config is None:
+        config = GET_CONFIG()
+
+    if overrides:
+        config.update(overrides)
+
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        config_path = Path(sys.executable).parent / "soulstruct_config.json"
+    else:
+        config_path = _SOULSTRUCT_APPDATA / "soulstruct_config.json"
+
+    config_json = {
+        k: str(v) if isinstance(v, Path) else v for k, v in config.items()
+    }
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    with config_path.open("w") as f:
+        json.dump(config_json, f, indent=4)
+
+
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("matbin", type=Path, required=True, help="Path to a matbin file")
+    p.add_argument("matbin", type=Path, help="Path to a matbin file")
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "-g",
@@ -87,6 +110,8 @@ if __name__ == "__main__":
             cfg = GET_CONFIG()
             if "NIGHTREIGN_PATH" in cfg:
                 args.game_path = cfg["NIGHTREIGN_PATH"]
+            else:
+                args.game_path = DEFAULT_NIGHTREIGN_PATH
         elif game == "ER":
             args.game_path = ELDEN_RING_PATH
         elif game == "DS3":
@@ -131,7 +156,7 @@ if __name__ == "__main__":
     if not args.game:
         path = args.game_path
 
-        if (path / "NIGHTREIGN.exe").is_file():
+        if (path / "nightreign.exe").is_file():
             args.game = "NR"
         else:
             for game in GAMES:
@@ -147,7 +172,10 @@ if __name__ == "__main__":
             "DS3": "DS3_PATH",
             "SDT": "SEKIRO_PATH",
         }[args.game]
-        SET_CONFIG(key=str(args.game_path))
+        
+        cfg = GET_CONFIG()
+        cfg[key] = str(args.game_path)
+        save_config(cfg)
     else:
         print("WARNING: could not determine game type, config has not been updated")
 

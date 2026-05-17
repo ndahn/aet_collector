@@ -1,0 +1,4 @@
+soulstruct @ git+https://github.com/Grimrukh/soulstruct.git@main
+constrata @ git+https://github.com/Grimrukh/constrata.git@master
+crossfiledialog
+pywin32; platform_system == "Windows"

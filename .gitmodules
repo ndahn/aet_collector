@@ -1,6 +1,0 @@
-[submodule "soulstruct"]
-	path = soulstruct
-	url = https://github.com/Grimrukh/soulstruct.git
-[submodule "constrata"]
-	path = constrata
-	url = https://github.com/Grimrukh/constrata.git
