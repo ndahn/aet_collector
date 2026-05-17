@@ -177,6 +177,8 @@ if __name__ == "__main__":
             cfg = GET_CONFIG()
             cfg[key] = str(args.game_path)
             save_config(cfg)
+
+            print(f"Game is {args.game}")
         else:
             print("WARNING: could not determine game type, config has not been updated")
 
@@ -187,5 +189,6 @@ if __name__ == "__main__":
 
         for mat in args.matbins:
             collect_aets(mat, args.game_path, args.output)
+            print()
     finally:
         input("Press enter to exit...")
